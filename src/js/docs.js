@@ -6,7 +6,16 @@ $(function() {
     var WIDTH = 512,
         HEIGHT = 512;
 
-    var shapeManager = new ShapeManager("shapesCanvas", WIDTH, HEIGHT);
+    var options = {};
+
+    var shapesClipboard = [];
+
+    // We can choose to display shapes only - No editing
+    // options = {'readOnly': true};
+
+    var shapeManager = new ShapeManager("shapesCanvas",
+                                        WIDTH, HEIGHT,
+                                        options);
 
     var zoomPercent = 100;
 
@@ -18,14 +27,14 @@ $(function() {
         shapeManager.setState(state);
     });
 
-    $("input[name='color']").click(function(){
-        var color = $(this).val();
-        shapeManager.setColor(color);
+    $("input[name='strokeColor']").click(function(){
+        var strokeColor = $(this).val();
+        shapeManager.setStrokeColor(strokeColor);
     });
 
-    $("select[name='lineWidth']").change(function(){
-        var lineWidth = $(this).val();
-        shapeManager.setLineWidth(lineWidth);
+    $("select[name='strokeWidth']").change(function(){
+        var strokeWidth = $(this).val();
+        shapeManager.setStrokeWidth(strokeWidth);
     });
 
     var updateZoom = function updateZoom() {
@@ -53,16 +62,32 @@ $(function() {
         shapeManager.deleteAll();
     });
 
+    $("button[name='copyShapes']").click(function(){
+        shapesClipboard = shapeManager.getSelectedShapesJson();
+    });
+
+    $("button[name='pasteShapes']").click(function(){
+        // paste shapes, constraining to the image coords
+        var p = shapeManager.pasteShapesJson(shapesClipboard, true);
+        if (!p) {
+            console.log("Shape could not be pasted: outside view port");
+        }
+    });
+
     $("button[name='getShapes']").click(function(){
       var json = shapeManager.getShapesJson();
       console.log(json);
     });
 
+    $("button[name='selectShape']").click(function(){
+      shapeManager.selectShape(1234);
+    });
+
     $("button[name='setShapes']").click(function(){
         var shapesJson = [
           {"type": "Rectangle",
-            "color": "ff00ff",
-            "lineWidth": 10,
+            "strokeColor": "#ff00ff",
+            "strokeWidth": 10,
             "x": 100, "y": 250,
             "width": 325, "height": 250},
           {"type": "Ellipse",
@@ -74,17 +99,30 @@ $(function() {
     });
 
     $("#shapesCanvas").bind("change:selected", function(){
-        var color = shapeManager.getColor();
-        $("input[value='" + color + "']").prop('checked', 'checked');
-        var lineWidth = shapeManager.getLineWidth();
-        $("select[name='lineWidth']").val(lineWidth);
+        var strokeColor = shapeManager.getStrokeColor();
+        if (strokeColor) {
+          $("input[value='" + strokeColor + "']").prop('checked', 'checked');
+        } else {
+           $("input[name='strokeColor']").removeProp('checked');
+        }
+        var strokeWidth = shapeManager.getStrokeWidth() || 1;
+        $("select[name='strokeWidth']").val(strokeWidth);
+    });
+
+    $("#shapesCanvas").bind("change:shape", function(event, shape){
+        console.log("changed", shape.toJson());
+    });
+
+    $("#shapesCanvas").bind("new:shape", function(event, shape){
+        console.log("new", shape.toJson());
+        console.log("selected", shapeManager.getSelectedShapesJson());
     });
 
     // Add some shapes to display
     shapeManager.addShapeJson({"id": 1234,
                                "type": "Rectangle",
-                               "color": "ffffff",
-                               "lineWidth": 6,
+                               "strokeColor": "#ff00ff",
+                               "strokeWidth": 6,
                                "x": 200, "y": 150,
                                "width": 125, "height": 150});
 
@@ -94,14 +132,20 @@ $(function() {
                                "rotation": 45});
 
     shapeManager.addShapeJson({"type": "Arrow",
-                               "color": "ffff00",
-                               "lineWidth": 4,
+                               "strokeColor": "#ffff00",
+                               "strokeWidth": 4,
                                "x1": 25, "y1": 450,
                                "x2": 200, "y2": 400});
 
-    shapeManager.addShapeJson({"type": "Line",
-                               "color": "00ff00",
-                               "lineWidth": 2,
+    shapeManager.addShapeJson({"type": "Arrow",
+                               "strokeColor": "#ffff00",
+                               "strokeWidth": 10,
+                               "x1": 25, "y1": 250,
+                               "x2": 200, "y2": 200});
+
+    shapeManager.addShapeJson({"type": "Arrow",
+                               "strokeColor": "#00ff00",
+                               "strokeWidth": 2,
                                "x1": 400, "y1": 400,
                                "x2": 250, "y2": 310});
 
